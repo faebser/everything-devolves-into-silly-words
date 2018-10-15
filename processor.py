@@ -2,6 +2,7 @@ import json
 from itertools import cycle, islice
 import re
 from collections import Iterable
+import string
 
 
 def roundrobin(*iterables):
@@ -24,6 +25,7 @@ def pairwise(iterable):
     a = iter(iterable)
     return zip(a, a)
 
+
 def flatten(items):
     """Yield items from any nested iterable; see REF."""
     for x in items:
@@ -34,9 +36,38 @@ def flatten(items):
 
 
 def process_token(_token):
-    _token = _token.strip("()").lower()
-    _token = list(filter(None, re.split("(,\s)|(\.\s)", _token)))
-    return list(flatten([x.split() for x in _token]))
+    # old code is shit
+    # new code is needed
+    #_token = _token.strip("()").lower()
+    _token = _token.lower()
+    # everything lowercase is better
+    # we search for each occurrence of punctuation in the string
+    # then we split there and then we split the remaining strings
+    # match.span()
+    # match.group()
+    matches = list(re.finditer('([{}])'.format(string.punctuation), _token))
+    if len(matches) != 0:
+        borders = [0] + [[x.start(), x.end()] for x in matches]
+        if borders[-1] != len(token) - 1:
+            borders.append(len(token))
+        punct_matches = [x.group() for x in matches]
+        borders = list(pairwise(
+            list(flatten(borders))
+            ))
+        token_list = []
+        #borders = list(pairwise(borders))
+        for index, pair in enumerate(borders):
+            start, end = pair
+            if index != len(borders)-1:
+                match = punct_matches[index]
+                token_list.append(_token[start:end].split())
+                token_list.append(match)
+            else:
+                token_list.append(_token[start:end].split())
+        token_list = list(flatten(token_list))
+    else:
+        token_list = _token.split()
+    return token_list
 
 
 with open('raw.json') as in_file:
@@ -76,5 +107,5 @@ for token in unprocessed:
 
 
 # write data object
-with open('data.json', 'w') as out_file:
+with open('data-more-correct.json', 'w') as out_file:
     json.dump(data, out_file)
